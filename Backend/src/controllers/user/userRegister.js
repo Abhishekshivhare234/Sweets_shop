@@ -9,7 +9,7 @@ const SECRET = process.env.JWT_SECRET;
 
 export async function registerUser(req, res) {
     try {
-        const { name, email, password, role } = req.body;
+        const { name, email, password} = req.body;
         if (!name || !email || !password) return res.status(400).json({ message: 'name, email, password required' });
         
         console.log("Registering user with email:", email);
@@ -19,7 +19,7 @@ export async function registerUser(req, res) {
         if (exists) return res.status(409).json({ message: 'Email already exists' });
 
         const hashed = await bcrypt.hash(password, 10);
-        const user = new User({ name, email, password: hashed, role: role || 'customer' });
+        const user = new User({ name, email, password: hashed, role: 'customer' });
         await user.save();
 
         return res.status(201).json({ message: 'User registered', user: { id: user._id, name: user.name, email: user.email, role: user.role } });
@@ -44,10 +44,15 @@ export async function loginUser(req, res) {
         if (!match) return res.status(401).json({ message: 'Invalid credentials' });
 
         const token = jwt.sign({ id: user._id, email: user.email, role: user.role }, SECRET, { expiresIn: '8h' });
-        res.cookie('tokenAuth', token, { httpOnly: true, maxAge: 8 * 60 * 60 * 1000 });
+        res.cookie('tokenAuth', token, { 
+            httpOnly: true, 
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 8 * 60 * 60 * 1000 
+        });
         console.log("Customer token:", token);
         console.log("User logged in:", user.role);
-        return res.json({ message: 'Logged in', user: { id: user._id, name: user.name, email: user.email, role: user.role,token } });
+        return res.json({ message: 'Logged in', user: { id: user._id, name: user.name, email: user.email, role: user.role, token } });
     } catch (err) {
         return res.status(500).json({ error: err.message });
     }

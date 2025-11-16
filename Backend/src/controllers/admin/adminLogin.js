@@ -35,13 +35,15 @@ export async function adminLogin(req, res) {
 
         const token = jwt.sign(payload, SECRET, { expiresIn: "8h" });
         console.log("Admin token:", token);
-        // Set cookie
+        // Set cookie with proper CORS settings
         res.cookie("tokenAuth", token, {
             httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
             maxAge: 8 * 60 * 60 * 1000
         });
 
-        return res.json({ message: "Admin logged in successfully", admin: { email: adminEmail ,password: adminPassword,id: adminId } });
+        return res.json({ message: "Admin logged in successfully", admin: { email: adminEmail, id: adminId } });
 
     } catch (err) {
         return res.status(500).json({ error: err.message });
@@ -62,6 +64,24 @@ export async function addProduct(req, res) {
             return res.status(400).json({ message: 'Validation failed', errors });
         }
         if (err.code === 11000) return res.status(409).json({ message: 'SKU already exists' });
+        return res.status(500).json({ error: err.message });
+    }
+}
+
+export async function updateProduct(req, res) {
+    try {
+        const { id } = req.params;
+        const updateData = req.body;
+        updateData.updatedAt = new Date();
+        
+        const product = await Product.findByIdAndUpdate(id, updateData, { new: true, runValidators: true });
+        if (!product) return res.status(404).json({ message: 'Product not found' });
+        return res.json({ message: 'Product updated', product });
+    } catch (err) {
+        if (err.name === 'ValidationError') {
+            const errors = Object.values(err.errors).map(e => e.message);
+            return res.status(400).json({ message: 'Validation failed', errors });
+        }
         return res.status(500).json({ error: err.message });
     }
 }

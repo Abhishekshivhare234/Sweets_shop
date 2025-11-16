@@ -10,7 +10,7 @@ const orderSchema = new mongoose.Schema({
     }
   ],
   totalPrice: { type: Number, required: true, min: 0 },
-  status: { type: String, enum: ['pending','processing','shipped','delivered','cancelled'], default: 'pending' },
+  status: { type: String, enum: ['pending','accepted','processing','shipped','delivered','cancelled'], default: 'pending' },
   shippingAddress: { type: String, required: [true, 'shipping address is required'] },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
